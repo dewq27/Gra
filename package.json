@@ -1,0 +1,17 @@
+{
+  "name": "projekt",
+  "version": "0.0.1",
+  "description": "Projekt na zajecia 'Technologie internetowe'",
+  "main": "server.js",
+ "dependencies": {
+    "mongoose": "*",
+    "socket.io": "*"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "repository": "",
+  "author": "dewq27",
+  "license": "BSD",
+  "readmeFilename": "README"
+}

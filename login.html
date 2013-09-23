@@ -1,0 +1,68 @@
+<!DOCTYPE HTML>
+<html>
+ <head>
+  <meta charset = "UTF-8" />
+  <title>Logowanie </title>
+  <link rel='stylesheet' type="text/css" href='style.css' >
+  <script type="text/javascript" src='skrypty/jquery-1.7.2.min.js'></script>
+  <script type="text/javascript" src='skrypty/jquery.animate-colors-min.js'></script>
+  <script type="text/javascript" src='skrypty/nav-menu.js'></script>
+  <script type="text/javascript" src='skrypty/sterowanie.js'></script>
+  <script type="text/javascript" src='skrypty/mapa.js'></script>
+  <script type="text/javascript" src='skrypty/czat.js'></script>
+  <script type="text/javascript" src='skrypty/menu.js'></script>
+  <script type="text/javascript" src='skrypty/ekran.js'></script>
+  <script type="text/javascript" src='skrypty/akcje.js'></script>
+  <script type="text/javascript" src='skrypty/bloki.js'></script>
+    <script type="text/javascript" src='skrypty/login.js'></script>
+    <script src="/socket.io/socket.io.js"></script>
+<script>
+
+//   var socket = io.connect('http://89.73.126.65:3000/');
+//    var socket = io.connect('http://192.168.1.111:3000/'); 
+	var socket = io.connect('http://localhost:3000/');
+</script>
+ </head>
+ <body>
+ 	<div id = "header">
+ 		<div id = "nav">
+  			<ul>
+ 				<li><a class="glowna" href = "glowna.html" >Strona główna</a></li>
+ 				<li><a class="" href = "about.html" >O grze</a></li>
+ 				<li><a class="screeny" href = "screenshots.html" >Screeny</a></li>
+ 				<li><a class="graj"  href = "index.html" >Zagraj</a></li>
+ 				<li><a class="about" href = "glowna.html" >O autorze</a></li>
+ 			</ul>
+ 			
+ 		</div>
+ 		
+ 		
+ 	</div>
+
+ 	<div id = "content">
+		<div class = "message">
+			<p class = "message_content">
+		
+				<p>
+					<span>Nick:</span>
+					<input type="text" id="login_nick"  />
+				</p>
+				<p>
+					<span>Hasło:</span>	
+					<input type="password"  id="login_password" />
+				</p>
+				<p>
+					<input type="button" id="loguj" value="Zaloguj"/>
+				</p>
+
+
+				
+			
+		</div>
+		
+
+	</div>
+	
+
+ </body>
+</html>
