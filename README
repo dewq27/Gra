@@ -1,6 +1,11 @@
 TODO
-    - dokonczenie menu,
-    - wzbogacenie mapy, lub jej calkowita zmiana,
-    - zrobic system walki
-    - zrobic wczytywanie graczy juz dostepnych na mapie, obecnie trzeba miec wlaczana gre..
-    - + zablokowac polaczenie, jezeli nie jestesmy zalogowani
+ - Bardzo duzo rzeczy..
+
+
+HOWTO
+ - korzystamy z bazy test
+ - aby moc zalogowac sie do gry nalezy zrobic usera w bazie test
+    - db.users.insert({nick: "user", pass: "qwe", x:20, y:25})
+ - node server.js
+ - localhost:3000
+
