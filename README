@@ -1,8 +1,8 @@
-Projekt gry przeglądarkowej, korzystający z bazy Mongo.
+Projekt gry przeglądarkowej, korzystający z bazy Mongo. 
 
 TODO
  - Bardzo duzo rzeczy..
-
+ - Nie działa zbytnio wylogowywanie userów, więc często trzeba resetować serwer...
 
 HOWTO
  - korzystamy z bazy test
