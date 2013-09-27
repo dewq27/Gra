@@ -333,6 +333,16 @@ walka()
             init_map();
         });
 
+
+	socket.on('wyszedl', function(data){
+	  for(var i = 0 ;i< gracz.gracze.length;i++) {
+	    if (data === gracz.gracze[i].nick) {
+	    	gracz.gracze.splice(i,1);
+	    }
+	}
+
+	} )
+
         socket.on('rysuj', function (data) {
             if (gracz.login !== false && data.nick !== gracz.nick) {
 //         alert("aaa");

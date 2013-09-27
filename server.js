@@ -1,7 +1,7 @@
 var http = require('http'),
     fs = require('fs'),
     io = require('socket.io'),
-    databaseUrl = "test",   // "username:password@example.com/mydb",
+    databaseUrl = "89.65.133.184/test",   // "username:password@example.com/mydb",
     collections = ["users", "reports"],
     db = require("mongojs").connect(databaseUrl, collections),
     id = 0,
@@ -25,7 +25,7 @@ var app = http.createServer(function (req, res) {
 
 }).listen(3000);
 var socket = io.listen(app);
-/*
+
 setInterval(function () {
     var i ;
     for (i = 0 ; i < gracz.length; i ++){
@@ -34,7 +34,7 @@ setInterval(function () {
     }
 
 },1000);
-*/
+
 
 socket.on('connection', function (client) {
     client.on('check_login', function (data) {
@@ -50,13 +50,17 @@ socket.on('connection', function (client) {
                     } else {
                         client.emit('zalogowano', {nick : gracz.nick});
                         console.log(gracz.nick + '  zalogowano!!');
-                        var date = new Date(),
+                        client.set("gracz", gracz.nick, function() {
+
+
+			var date = new Date(),
                             hour = date.getHours(),
                             min = date.getMinutes(),
                             wiadomosc = {
                                 tresc : "<li style{color:red;}>" + hour + ":" + min + " Gracz " + data.nick + ": " + "Dołączył do gry" + "</li>"
                             };
                         client.broadcast.emit('new', wiadomosc);
+});
                     }
                 });
             }
@@ -136,9 +140,20 @@ socket.on('connection', function (client) {
     });
 
     client.on('disconnect', function () {
-        console.log('force quit');
-	
-    });
+	console.log("force quit\n");
+	client.get('gracz', function(err, data) {
+	  console.log("gracz " + data + "wyszedl z gry");
+	  
+	client.broadcast.emit('wyszedl', data);
+	for (var i= 0; i<gracz.length; i++) {
+	  if (data === gracz[i].nick)
+	    gracz.splice(i,1);
+	    id = id -1;
+	}
 
+        })
+
+
+    });
 });
 
