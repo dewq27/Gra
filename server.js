@@ -1,7 +1,7 @@
 var http = require('http'),
     fs = require('fs'),
     io = require('socket.io'),
-    databaseUrl = "89.65.133.184/test",   // "username:password@example.com/mydb",
+    databaseUrl = "localhost/test",   // "username:password@example.com/mydb",
     collections = ["users", "reports"],
     db = require("mongojs").connect(databaseUrl, collections),
     id = 0,
@@ -69,7 +69,7 @@ socket.on('connection', function (client) {
     });
 
     client.on('exit', function (data) {
-        client.broadcast.emit('msg', {tresc: "adwdwa"});
+        client.broadcast.emit('msg', {tresc: "Gracz wyszedł"});
 
     });
 
