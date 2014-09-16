@@ -10,4 +10,5 @@ HOWTO
     - db.users.insert({nick: "user", pass: "qwe", x:20, y:25})
  - node server.js
  - localhost:3000
+ - czasem trzeba wcisnąć Enter, aby móc się ruszać na początku
 
