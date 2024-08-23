@@ -1,159 +1,183 @@
-var http = require('http'),
-    fs = require('fs'),
-    io = require('socket.io'),
-    databaseUrl = "localhost/test",   // "username:password@example.com/mydb",
-    collections = ["users", "reports"],
-    db = require("mongojs").connect(databaseUrl, collections),
-    id = 0,
-    gracz = [];
+const http = require('http');
+const fs = require('fs');
+const io = require('socket.io');
+const PouchDB = require('pouchdb');
+PouchDB.plugin(require('pouchdb-find'));
 
-var app = http.createServer(function (req, res) {
-    var path =  req.url;
-    if (req.url === '/') {
-        path = '/index.html';
+const db = new PouchDB('test2');
+const clientIdCounter = { value: 0 }; // To manage unique IDs for players
+const gracz = [];
+
+// Initialize the database
+async function init() {
+    try {
+        // Create an index on the 'type' field to optimize queries
+        await db.createIndex({
+            index: {
+                fields: ['type']
+            }
+        });
+
+        const result = await db.find({
+            selector: { type: 'user' }
+        });
+
+        if (result.docs.length === 0) {
+            // Create a new user document
+            const defaultUser = {
+                _id: 'user_test',
+                type: 'user',
+                nick: 'test',
+                pass: 'qwe',
+                x: 20,
+                y: 25
+            };
+            await db.put(defaultUser);
+            console.log('Initialized database with default user "test"');
+        } else {
+            console.log('Users already exist in the database');
+        }
+    } catch (err) {
+        console.error('Error during database initialization:', err);
     }
+}
+
+// Run the init function to check the database on startup
+init();
+
+const app = http.createServer((req, res) => {
+    let path = req.url === '/' ? '/index.html' : req.url;
     path = '.' + path;
-    fs.stat(path, function (err, stats) {
+
+    fs.stat(path, (err, stats) => {
         if (err) {
             res.writeHead(404);
             res.end();
         } else {
             fs.createReadStream(path).pipe(res);
+        }
+    });
+}).listen(3000, () => {
+    console.log('Server running on port 3000');
+});
 
+const socket = io(app);
+
+setInterval(() => {
+    gracz.forEach(player => {
+        console.log(player.nick);
+    });
+    console.log(""); // Just to separate logs
+}, 1000);
+
+socket.on('connection', (client) => {
+    client.on('check_login', async (data) => {
+        console.log(data.nick + " " + data.pass);
+        try {
+            const result = await db.find({
+                selector: { nick: data.nick, type: 'user' }
+            });
+
+            if (result.docs.length === 0) {
+                client.emit('errLogin', { msg: "Nie znaleziono użytkownika" });
+            } else {
+                const user = result.docs[0];
+                if (data.pass !== user.pass) {
+                    console.log(user.nick + ' hasło się nie zgadza!!');
+                    client.emit('errLogin', { msg: "Podano złe hasło" });
+                } else {
+                    client.emit('zalogowano', { nick: user.nick });
+                    console.log(user.nick + ' zalogowano!!');
+                    client.data.gracz = user.nick;
+
+                    const date = new Date();
+                    const wiadomosc = {
+                        tresc: `<li style="color:red;">${date.getHours()}:${date.getMinutes()} Gracz ${data.nick}: Dołączył do gry</li>`
+                    };
+                    client.broadcast.emit('new', wiadomosc);
+                }
+            }
+        } catch (err) {
+            client.emit('errLogin', { msg: "Błąd połączenia z bazą danych" });
+            console.error(err);
         }
     });
 
-}).listen(3000);
-var socket = io.listen(app);
-
-setInterval(function () {
-    var i ;
-    for (i = 0 ; i < gracz.length; i ++){
-    console.log(gracz[i].nick);
-    console.log("");
-    }
-
-},1000);
-
-
-socket.on('connection', function (client) {
-    client.on('check_login', function (data) {
-        console.log(data.nick + " " + data.pass);
-        db.users.find({nick: data.nick}, function (err, users) {
-            if (err || !users) {
-                client.emit('errLogin', {msg : "Brak połączenia z bazą danych, spróbuj ponownie później"});
-            } else {
-                (users.forEach)(function (gracz) {
-                    if (data.pass !== gracz.pass) {
-                        console.log(gracz.nick + '  hasło się nie zgadza!!');
-                        client.emit('errLogin', {msg : "Podano złe hasło"});
-                    } else {
-                        client.emit('zalogowano', {nick : gracz.nick});
-                        console.log(gracz.nick + '  zalogowano!!');
-                        client.set("gracz", gracz.nick, function() {
-
-
-			var date = new Date(),
-                            hour = date.getHours(),
-                            min = date.getMinutes(),
-                            wiadomosc = {
-                                tresc : "<li style{color:red;}>" + hour + ":" + min + " Gracz " + data.nick + ": " + "Dołączył do gry" + "</li>"
-                            };
-                        client.broadcast.emit('new', wiadomosc);
-});
-                    }
-                });
-            }
-        });
-
+    client.on('exit', (data) => {
+        client.broadcast.emit('msg', { tresc: "Gracz wyszedł" });
     });
 
-    client.on('exit', function (data) {
-        client.broadcast.emit('msg', {tresc: "Gracz wyszedł"});
+    client.on('gracz', async (data) => {
+        try {
+            const result = await db.find({
+                selector: { nick: data.nick, type: 'user' }
+            });
 
-    });
-
-    client.on('gracz', function (data) {
-        var send_pos = function (graczdb) {
-                client.emit('rysuj', {nick : graczdb.nick, x : graczdb.x * 32, y: graczdb.y * 32 });
-            },
-            set_gracz = function (graczdb) {
-                gracz[id] = {
-                    id : id,
-                    nick : graczdb.nick,
-                    x : graczdb.x,
-                    y : graczdb.y
-                };
-            };
-        db.users.find({nick: data.nick}, function (err, users) {
-            if (err || !users) {
+            if (result.docs.length === 0) {
                 console.log("Nie ma takiego gracza");
             } else {
-                users.forEach(function (graczdb) {
-                    gracz[id] = {
-                        id : id,
-                        nick : graczdb.nick,
-                        x : graczdb.x,
-                        y : graczdb.y
-                    };
-                    console.log(data.nick + " Dolaczyl do gry");
-                    client.emit('msg', {tresc: 'Witaj ' + data.nick + "!!!"});
-                    client.emit('setPosition', {id : id, x: gracz[id].x * 32, y: gracz[id].y * 32});
+                const user = result.docs[0];
+                const playerId = clientIdCounter.value++;
+                const player = { id: playerId, nick: user.nick, x: user.x, y: user.y };
+                gracz.push(player);
 
+                console.log(`${data.nick} Dołączył do gry`);
+                client.emit('msg', { tresc: `Witaj ${data.nick}!!!` });
+                client.emit('setPosition', { id: playerId, x: player.x * 32, y: player.y * 32 });
+                client.broadcast.emit('rysuj', { nick: player.nick, x: player.x * 32, y: player.y * 32 });
 
-                    client.broadcast.emit('rysuj', {nick : gracz[id].nick, x : gracz[id].x * 32, y: gracz[id].y * 32 });
-                    var i;
-                    for (i = 0; i < id; i += 1) {
-                        db.users.find({nick: gracz[i].nick}, function (err, users) {
-                            if (err || !users) {
-                                console.log("Nie ma takiego gracza");
-                            } else {
-                                users.forEach(function (graczdb) {
-                                    client.emit('rysuj', {nick : graczdb.nick, x : graczdb.x * 32, y: graczdb.y * 32 });
-                                });
-                            }
-                        });
+                gracz.forEach((p, i) => {
+                    if (i !== playerId) {
+                        client.emit('rysuj', { nick: p.nick, x: p.x * 32, y: p.y * 32 });
                     }
-
-                    id += 1;
-
                 });
             }
-        });
+        } catch (err) {
+            console.error("Błąd podczas dołączania gracza", err);
+        }
     });
-    client.on('msg', function (data) {
-        var date = new Date(),
-            hour = date.getHours(),
-            min = date.getMinutes();
+
+    client.on('msg', (data) => {
+        const date = new Date();
         console.log(data.tresc);
         client.broadcast.emit('msg', data);
     });
-    client.on('xy', function (data) {
+
+    client.on('xy', async (data) => {
         client.broadcast.emit("yx", data);
-        db.users.update({nick : data.gracz}, {$set: {x : data.x, y: data.y}}, function (err, saved) {
-            if (err || !saved) {
-                console.log("Nie mozna bylo dodac");
+        try {
+            const result = await db.find({
+                selector: { nick: data.gracz, type: 'user' }
+            });
+
+            if (result.docs.length > 0) {
+                const user = result.docs[0];
+                user.x = data.x;
+                user.y = data.y;
+
+                await db.put(user);
+                console.log('Zaktualizowano');
             } else {
-                console.log('Dodano');
+                console.log("Nie można było zaktualizować");
             }
-        });
+        } catch (err) {
+            console.error("Błąd podczas aktualizacji pozycji", err);
+        }
     });
 
-    client.on('disconnect', function () {
-	console.log("force quit\n");
-	client.get('gracz', function(err, data) {
-	  console.log("gracz " + data + "wyszedl z gry");
-	  
-	client.broadcast.emit('wyszedl', data);
-	for (var i= 0; i<gracz.length; i++) {
-	  if (data === gracz[i].nick)
-	    gracz.splice(i,1);
-	    id = id -1;
-	}
+    client.on('disconnect', () => {
+        console.log("force quit\n");
+        const playerNick = client.data.gracz;
 
-        })
+        if (playerNick) {
+            console.log(`gracz ${playerNick} wyszedł z gry`);
+            client.broadcast.emit('wyszedl', playerNick);
 
-
+            const index = gracz.findIndex(p => p.nick === playerNick);
+            if (index !== -1) {
+                gracz.splice(index, 1);
+                clientIdCounter.value--;
+            }
+        }
     });
 });
-
